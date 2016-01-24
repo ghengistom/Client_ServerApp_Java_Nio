@@ -58,9 +58,7 @@ class MainServer {
 					clientMap.put(readKey, new ClientSession(readKey, acceptedChannel));
 					                             create new ClientSession and we put that value into hashmap
 					                             and the key is in the key of the hashmap so down below.....
-					                             
-					                       
-
+					                     
 					System.out.println("New client ip=" + acceptedChannel.getRemoteAddress() + ", total clients=" + MainServer.clientMap.size());
 				}
 				//..continued if the key is readable we can get the client session from the hashmap by using the function

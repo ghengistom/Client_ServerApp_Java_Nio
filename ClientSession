@@ -1,0 +1,80 @@
+//This is the Client Session class. Everytime a new connection is made, one of these classes
+//will be created to hold the information for this client.
+
+//Each one of these variables will be specific to this client.
+//VARIABLES:
+//	SelectionKey selkey;			
+//	SocketChannel chan;
+//	ByteBuffer buf;
+//This means each client will have there own selection key, channel, and byte buffer
+//line 31 SocketChannel is configured for non-blocking
+//line 32 we allocate a byte buffer that can hold up to 64 bytes
+//disconnect() -cancels the SelectionKey and closes the channel
+//line 46 quietly ignore any errors when trying to disconnect
+//line 49 where reading is done from the client
+
+package nioserv;
+
+import java.net.*;
+import java.nio.*;
+import java.nio.channels.*;
+
+
+class ClientSession {
+
+	SelectionKey selkey;			
+	SocketChannel chan;
+	ByteBuffer buf;
+
+	ClientSession(SelectionKey selkey, SocketChannel chan) throws Throwable {
+		this.selkey = selkey;
+		this.chan = (SocketChannel) chan.configureBlocking(false); // asynchronous/non-blocking
+		buf = ByteBuffer.allocateDirect(64); // 64 byte capacity
+	}
+	//cancels SelectionKey and close the channel
+	void disconnect() {
+		//if you do not remove the client after disconnecting then you will just keep adding clients
+		//to the client map even after they disconnect which is bad
+		MainServer.clientMap.remove(selkey);
+		try {
+			if (selkey != null)
+				selkey.cancel();
+
+			if (chan == null)
+				return;
+
+			System.out.println("bye bye " + (InetSocketAddress) chan.getRemoteAddress());
+			chan.close();
+		} catch (Throwable t) { /** quietly ignore  */ }
+	}
+
+	void read() {
+		try {
+			int amount_read = -1;
+			//this line below makes it so that we ignore any exception read() throws
+			//this is because we set it to "-1" already above.
+			//we check for the "-1" value with the line below.
+			try { amount_read = chan.read((ByteBuffer) buf.clear());
+			} catch (Throwable t) { }
+			//end try and catch right here
+			//now if it is "-1" we will disconnect cause client has errors or anything could've happened.
+			if (amount_read == -1)
+				disconnect();
+
+			if (amount_read < 1)
+				return; // if zero just wait and wait until another read even triggers this method
+			//if you make it to this point that means that some bytes were read into byte buffer and now
+			//we can handle them so then you flip it and send it back.
+			System.out.println("sending back " + buf.position() + " bytes");
+			//
+
+			// turn this bus right around and send it back!
+			buf.flip();               //flip it 
+			chan.write(buf);          //sent it back
+		} catch (Throwable t) {
+			disconnect();
+			t.printStackTrace();
+		}
+	}
+
+}

@@ -1,0 +1,88 @@
+package nioserv;
+
+import java.net.*;
+import java.nio.channels.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+class MainServer {
+
+	public static void main(String[] args) throws Throwable {
+		new MainServer(new InetSocketAddress("localhost", 1337));      //make new internet socket address
+	}								       //gets passed to constructor
+									       //parameters:localhost, portnumber
+
+	ServerSocketChannel serverChannel;          //channel object
+	Selector selector;                          //selector object
+	SelectionKey serverKey;                     //server key object
+	//constructor
+	//parameter: InetSocketAddress is internet socket address
+	MainServer(InetSocketAddress listenAddress) throws Throwable {
+		serverChannel = ServerSocketChannel.open();                     //open server socket channel 
+		serverChannel.configureBlocking(false);                         //configure to non-blocking
+		serverKey = serverChannel.register(selector = Selector.open(), SelectionKey.OP_ACCEPT);    
+		serverChannel.bind(listenAddress);                            
+
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
+			try {
+				loop();
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}, 0, 500, TimeUnit.MILLISECONDS);
+	}
+
+	static HashMap<SelectionKey, ClientSession> clientMap = new HashMap<SelectionKey, ClientSession>();
+
+	void loop() throws Throwable {
+		selector.selectNow();
+
+		for (SelectionKey key : selector.selectedKeys()) {
+			try {
+				if (!key.isValid())
+					continue;
+
+				if (key == serverKey) {
+					SocketChannel acceptedChannel = serverChannel.accept();
+
+					if (acceptedChannel == null)
+						continue;
+					//after you accepted a new channel you have to configure it as
+					//non-blocking
+					acceptedChannel.configureBlocking(false);
+					//need to register the newly accepted channel with "selector" too
+					//only difference is ".OP_READ" vs. "OP_ACCEPT" cuz we want to do read operations
+					//so get and store into readKey variable 
+					SelectionKey readKey = acceptedChannel.register(selector, SelectionKey.OP_READ);
+					//then you put that readKey into hashmap as the hashmap key
+					clientMap.put(readKey, new ClientSession(readKey, acceptedChannel));
+					                             create new ClientSession and we put that value into hashmap
+					                             and the key is in the key of the hashmap so down below.....
+					                             
+					                       
+
+					System.out.println("New client ip=" + acceptedChannel.getRemoteAddress() + ", total clients=" + MainServer.clientMap.size());
+				}
+				//..continued if the key is readable we can get the client session from the hashmap by using the function
+				//"clientMap.get(key);
+				if (key.isReadable()) {
+					ClientSession sesh = clientMap.get(key);
+				//.get gives you the clients session 
+					if (sesh == null)
+						continue;
+				//then call read method
+				//which handles all the reading inside ClientSession class
+					sesh.read();
+				}
+
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
+		}
+		//critical !!! after you handle the keys you need the clear the key set! Otherwise when you go
+		//to handle new keys, you will just have all your old keys that were in there previously. So be
+		//sure to clear before you go on in your next operation which is in your "LOOP". 
+		selector.selectedKeys().clear();
+	}
+
+}

@@ -1,5 +1,7 @@
 # ClientServer-JavaNio
 
+To run this first execute the MainServer then run the quickClient...
+
 The client will send some bytes and wait 
 for the bytes to be sent back so that it can
 print them back to the council.

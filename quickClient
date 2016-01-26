@@ -10,10 +10,6 @@ public class quickclient {
 		Socket s = new Socket("localhost", 1337);
 
 		OutputStream out = s.getOutputStream();
-		out.write(55);
-		out.write(54);
-		out.write(34);
-		out.write(23);
 		out.write(2);
 		out.write(7);
 		out.flush();

@@ -4,8 +4,23 @@ import java.net.*;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Logger;
+import java.util.Calendar;
+
+
 
 class MainServer {
+	
+	Calendar calendar = Calendar.getInstance(); //make calendar instance
+	public static final Logger Log = Logger.getLogger("MainServer.class");
+	
+	java.util.Date now = calendar.getTime();
+	java.sql.Timestamp currentTimestamp = new java.sql.Timestamp(now.getTime());
+	
+	
+	//Properties properties = new Properties();
+	//properties.
+	//FileWriter writer = new FileWriter("conf.properties");
 
 	public static void main(String[] args) throws Throwable {
 		new MainServer(new InetSocketAddress("localhost", 1337));      //make new internet socket address
@@ -23,6 +38,7 @@ class MainServer {
 		serverKey = serverChannel.register(selector = Selector.open(), SelectionKey.OP_ACCEPT);    
 		serverChannel.bind(listenAddress);                            
 
+																		//lambda 
 		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
 			try {
 				loop();
@@ -43,6 +59,9 @@ class MainServer {
 					continue;
 
 				if (key == serverKey) {
+					
+					Log.info("Succesfull connection!");
+					
 					SocketChannel acceptedChannel = serverChannel.accept();
 
 					if (acceptedChannel == null)
@@ -56,8 +75,8 @@ class MainServer {
 					SelectionKey readKey = acceptedChannel.register(selector, SelectionKey.OP_READ);
 					//then you put that readKey into hashmap as the hashmap key
 					clientMap.put(readKey, new ClientSession(readKey, acceptedChannel));
-					                             create new ClientSession and we put that value into hashmap
-					                             and the key is in the key of the hashmap so down below.....
+					                            // create new ClientSession and we put that value into hashmap
+					                           //  and the key is in the key of the hashmap so down below.....
 					                     
 					System.out.println("New client ip=" + acceptedChannel.getRemoteAddress() + ", total clients=" + MainServer.clientMap.size());
 				}
